@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Annotated, List, Tuple
+from typing import Annotated, List
+from uuid import uuid4
 
 import aiosqlite
 from fastapi import APIRouter, File, HTTPException, Request, UploadFile, status
@@ -10,16 +12,16 @@ from pydantic import BaseModel
 
 from .models import (
     ChunkInfo,
-    ModelUpload,
     ProgressResponse,
     SplitResult,
     UploadResponse,
 )
+from ..config import chunks_dir, upload_dir
 from ..core.chunker import ChunkEngine
 from ..core.slicer_estimate import SlicerEstimator
 
 
-router = APIRouter(prefix="/api", tags=["autoslicer"])
+router = APIRouter(prefix="/api", tags=["chopshop"])
 
 
 def _get_db_path(request: Request) -> Path:
@@ -41,21 +43,27 @@ async def upload_model(
     if file.filename is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Missing filename")
 
+    if not file.filename.lower().endswith(".stl"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only .stl uploads are supported",
+        )
+
     db_path = _get_db_path(request)
 
-    model_id = UploadFile.__name__  # placeholder to satisfy type checker
-    from uuid import uuid4
-
     model_id = uuid4().hex
-    upload_root = Path("output") / "uploads" / model_id
+    upload_root = upload_dir(model_id)
     upload_root.mkdir(parents=True, exist_ok=True)
     model_path = upload_root / "model.stl"
 
     contents = await file.read()
     await file.close()
+    if not contents:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Uploaded file is empty",
+        )
     model_path.write_bytes(contents)
-
-    from datetime import datetime, timezone
 
     uploaded_at = datetime.now(tz=timezone.utc).isoformat()
 
@@ -95,7 +103,7 @@ async def split_model(model_id: str, request: Request) -> SplitResult:
     db_path = _get_db_path(request)
     model_path = await _fetch_model_path(db_path, model_id)
 
-    output_root = Path("output") / "chunks" / model_id
+    output_root = chunks_dir(model_id)
     output_root.mkdir(parents=True, exist_ok=True)
 
     try:
@@ -372,7 +380,14 @@ async def get_progress(model_id: str, request: Request) -> ProgressResponse:
 
 @router.get("/chunks/{model_id}/{chunk_id}/stl")
 async def get_chunk_stl(model_id: str, chunk_id: str) -> FileResponse:
-    stl_path = Path("output") / "chunks" / model_id / f"{chunk_id}.stl"
+    root = chunks_dir(model_id)
+    stl_path = (root / f"{chunk_id}.stl").resolve()
+    # Reject ids that try to escape the model's chunk directory.
+    if root.resolve() not in stl_path.parents:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid chunk id",
+        )
     if not stl_path.exists():
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
