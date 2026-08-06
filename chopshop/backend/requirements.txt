@@ -1,8 +1,22 @@
-fastapi>=0.115.0
-uvicorn[standard]>=0.30.0
-trimesh>=4.0.0
-shapely>=2.0.0
-manifold3d>=3.0.0
-pydantic>=2.0.0
-python-multipart>=0.0.9
-aiosqlite>=0.20.0
+# Verified against CPython 3.14 on macOS (arm64). Lower bounds are the
+# versions the code was actually exercised with.
+
+# API
+fastapi>=0.141.1
+uvicorn[standard]>=0.52.1
+pydantic>=2.13.4
+python-multipart>=0.0.32
+aiosqlite>=0.22.1
+
+# Geometry
+trimesh>=5.0.0
+numpy>=2.5.1
+manifold3d>=3.5.2   # boolean engine behind trimesh.boolean
+shapely>=2.1.2      # 2D section/polygon operations used by trimesh
+scipy>=1.18.0       # required by trimesh mesh repair and plane slicing
+networkx>=3.6.1     # required by trimesh graph/component traversal
+rtree>=1.4.1        # spatial index for the pure-Python ray intersector
+
+# Tests
+pytest>=9.1.1
+httpx>=0.28.1       # required by fastapi.testclient
