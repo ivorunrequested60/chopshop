@@ -9,6 +9,7 @@ Defaults (from CLAUDE.md):
 """
 
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Literal, Tuple
 
 import numpy as np
@@ -19,6 +20,11 @@ DEFAULT_CLEARANCE_MM = 0.2
 CONNECTOR_SPACING_MM = 30.0
 CONNECTOR_EDGE_INSET_MM = 10.0
 MIN_MATERIAL_THICKNESS_MM = 5.0
+
+# The depth ray starts on the cut face, so it has to be nudged just inside the
+# surface. Without this it registers a hit at distance 0 against the very face
+# it starts on and every candidate site is rejected.
+RAY_START_OFFSET_MM = 1e-3
 
 
 @dataclass
@@ -94,7 +100,12 @@ def generate_dovetail_male(width: float, depth: float, length: float) -> trimesh
         dtype=int,
     )
 
-    return trimesh.Trimesh(vertices=vertices, faces=faces, process=True)
+    prism = trimesh.Trimesh(vertices=vertices, faces=faces, process=True)
+    # The face table above is wound consistently but inwards, which gives the
+    # prism a negative volume. manifold3d rejects such meshes outright
+    # ("Not all meshes are volumes!"), so flip the normals outwards here.
+    prism.fix_normals()
+    return prism
 
 
 def generate_dovetail_female(
@@ -196,19 +207,29 @@ def _ray_has_sufficient_material(
 ) -> bool:
     """
     Use ray casting to ensure there is enough material behind a connector.
+
+    ``origin`` sits on the cut face and ``direction`` points into the chunk.
+    The ray is started just inside the surface so it does not hit the face it
+    starts on, and the distance to the first hit beyond that is the amount of
+    material available to anchor the connector.
     """
 
     direction = direction / np.linalg.norm(direction)
-    # Use trimesh's generic ray interface; pyembree is optional.
-    r = trimesh.ray.ray_pyembree.RayMeshIntersector(mesh)  # type: ignore[attr-defined]
+    start = origin + direction * RAY_START_OFFSET_MM
+
+    # ``mesh.ray`` picks the embree-backed intersector when embreex is
+    # installed and falls back to the pure-numpy one otherwise. It is cached
+    # on the mesh, so repeated calls do not rebuild the acceleration
+    # structure.
+    r = mesh.ray
     locations, _index_ray, _index_tri = r.intersects_location(
-        origins=origin.reshape(1, 3),
-        directions=direction.reshape(1, 3),
+        start.reshape(1, 3),
+        direction.reshape(1, 3),
         multiple_hits=False,
     )
     if len(locations) == 0:
         return False
-    dist = np.linalg.norm(locations[0] - origin)
+    dist = float(np.linalg.norm(locations[0] - origin))
     return dist >= min_distance
 
 
@@ -268,13 +289,16 @@ def place_connectors(
             ):
                 continue
 
-            # Orient connector so its +Z aligns with the face normal.
-            # Build rotation matrix from connector local axes to world axes.
-            # Local basis is (x, y, z) = (1, 0, 0), (0, 1, 0), (0, 0, 1).
+            # Build the rotation from connector-local axes to world axes.
+            # A male pin extrudes outwards along the face normal so it can
+            # enter the neighbouring chunk. A female cavity has to extrude
+            # inwards, otherwise the subtraction happens entirely outside the
+            # chunk and removes nothing at all. Negating tangent_v alongside
+            # the normal keeps the basis right-handed.
             rot = np.eye(4, dtype=float)
             rot[0:3, 0] = tangent_u
-            rot[0:3, 1] = tangent_v
-            rot[0:3, 2] = n
+            rot[0:3, 1] = tangent_v if side == "male" else -tangent_v
+            rot[0:3, 2] = n if side == "male" else -n
 
             trans = np.eye(4, dtype=float)
             trans[0:3, 3] = base_point
@@ -290,12 +314,13 @@ def place_connectors(
 
     all_connectors = trimesh.util.concatenate(connectors)
 
-    # Use trimesh boolean operations; if manifold3d-backed booleans are
-    # configured, they can be swapped in here later.
+    # trimesh dispatches these to manifold3d. Both take a sequence; passing
+    # the operands as two positional arguments binds the second one to the
+    # ``engine`` parameter instead.
     if side == "male":
         result = trimesh.boolean.union([chunk_mesh, all_connectors])
     else:
-        result = trimesh.boolean.difference(chunk_mesh, all_connectors)
+        result = trimesh.boolean.difference([chunk_mesh, all_connectors])
 
     if isinstance(result, list):
         # Union may return a list; take the largest component.

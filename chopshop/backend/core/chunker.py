@@ -137,7 +137,8 @@ class ChunkEngine:
 
         mesh = trimesh.load_mesh(self.stl_path, file_type="stl")
         if not isinstance(mesh, trimesh.Trimesh):
-            mesh = mesh.dump().sum()  # type: ignore[assignment]
+            # A multi-body file loads as a Scene; flatten it to one mesh.
+            mesh = trimesh.util.concatenate(mesh.dump())  # type: ignore[assignment]
 
         trimesh.repair.fix_normals(mesh)
         trimesh.repair.fill_holes(mesh)
@@ -172,7 +173,14 @@ class ChunkEngine:
         x0: float, y0: float, z0: float,
         x1: float, y1: float, z1: float,
     ) -> trimesh.Trimesh:
-        """Clip *mesh* to an axis-aligned box using six plane slices."""
+        """
+        Clip *mesh* to an axis-aligned box using six plane slices.
+
+        Each slice caps the open boundary it creates, so the result stays
+        watertight and therefore has a well-defined volume. Without capping
+        the interior chunks come back as open shells and every downstream
+        volume-based estimate collapses to zero.
+        """
         result = mesh
         planes = [
             ([1, 0, 0], [x0, 0, 0]),   # x >= x0
@@ -184,7 +192,7 @@ class ChunkEngine:
         ]
         for normal, point in planes:
             result = trimesh.intersections.slice_mesh_plane(
-                result, normal, point
+                result, normal, point, cap=True
             )
             if result.is_empty:
                 return result
