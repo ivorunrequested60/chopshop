@@ -16,7 +16,7 @@ function App() {
         <header className="flex flex-col gap-2 border-b border-slate-800 pb-4 sm:flex-row sm:items-baseline sm:justify-between">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight text-white">
-              AutoSlicer3D
+              ChopShop
             </h1>
             <p className="mt-1 text-sm text-slate-300">
               Upload large STL models, split them into printable chunks, and

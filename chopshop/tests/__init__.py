@@ -1,1 +1,1 @@
-# Test package for AutoSlicer3D backend and frontend helpers.
+# Test package for the ChopShop backend.

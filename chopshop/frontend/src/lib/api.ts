@@ -31,7 +31,7 @@ export type ProgressResponse = {
 
 function networkError(cause: unknown): Error {
   return new Error(
-    `Cannot reach the backend — is it running on port 8000? (${cause instanceof Error ? cause.message : String(cause)})`,
+    `Cannot reach the backend. Is it running on port 8000? (${cause instanceof Error ? cause.message : String(cause)})`,
   );
 }
 
