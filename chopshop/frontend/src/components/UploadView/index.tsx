@@ -45,7 +45,7 @@ function BuildVolumeBox() {
   );
 }
 
-// UploadedModel receives a ready blob URL — never null, never a fake fallback.
+// UploadedModel receives a ready blob URL: never null, never a fake fallback.
 function UploadedModel({ url }: { url: string }) {
   const geometry = useLoader(STLLoader, url);
   const [meshRef, setMeshRef] = useState<Mesh | null>(null);
@@ -94,7 +94,7 @@ export function UploadView({ onUploaded }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  // Blob URL is created/revoked here — never inside a render-phase hook.
+  // Blob URL is created/revoked here, never inside a render-phase hook.
   useEffect(() => {
     if (!file) {
       setObjectUrl(null);
