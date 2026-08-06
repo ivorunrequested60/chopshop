@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# Node
+node_modules/
+dist/
+build/
+.vite/
+
+# Runtime data (uploads, generated chunk STLs, SQLite)
+data/
+output/
+*.db
+*.sqlite3
+
+# Local models
+*.stl
+*.3mf
+*.gcode
+
+# Environment
+.env
+.env.local
+
+# OS
+.DS_Store
